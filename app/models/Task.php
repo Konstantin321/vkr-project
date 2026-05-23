@@ -236,12 +236,11 @@ class Task
         $stmt = $this->pdo->prepare($sql);
 
         foreach ($options as $index => $option) {
-            $stmt->execute([
-                ':task_id' => $taskId,
-                ':option_text' => $option['option_text'],
-                ':is_correct' => !empty($option['is_correct']),
-                ':sort_order' => $index + 1,
-            ]);
+            $stmt->bindValue(':task_id', $taskId, PDO::PARAM_INT);
+            $stmt->bindValue(':option_text', $option['option_text'], PDO::PARAM_STR);
+            $stmt->bindValue(':is_correct', !empty($option['is_correct']), PDO::PARAM_BOOL);
+            $stmt->bindValue(':sort_order', $index + 1, PDO::PARAM_INT);
+            $stmt->execute();
         }
 
         return true;

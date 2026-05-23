@@ -183,6 +183,30 @@ class TaskSet
         return $stmt->execute([':id' => $itemId]);
     }
 
+    public function removeItems(array $itemIds): int
+    {
+        $itemIds = array_values(array_filter(array_map('intval', $itemIds), fn($id) => $id > 0));
+
+        if (empty($itemIds)) {
+            return 0;
+        }
+
+        $placeholders = [];
+        $params = [];
+
+        foreach ($itemIds as $index => $id) {
+            $key = ':id_' . $index;
+            $placeholders[] = $key;
+            $params[$key] = $id;
+        }
+
+        $sql = 'DELETE FROM task_set_items WHERE id IN (' . implode(', ', $placeholders) . ')';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->rowCount();
+    }
+
     public function update(int $id, array $data): bool
     {
         $sql = '
@@ -272,5 +296,29 @@ class TaskSet
         $stmt->execute([':id' => $id]);
 
         return $stmt->rowCount() > 0;
+    }
+
+    public function deleteMultiple(array $ids): int
+    {
+        $ids = array_values(array_filter(array_map('intval', $ids), fn($id) => $id > 0));
+
+        if (empty($ids)) {
+            return 0;
+        }
+
+        $placeholders = [];
+        $params = [];
+
+        foreach ($ids as $index => $id) {
+            $key = ':id_' . $index;
+            $placeholders[] = $key;
+            $params[$key] = $id;
+        }
+
+        $sql = 'DELETE FROM task_sets WHERE id IN (' . implode(', ', $placeholders) . ')';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->rowCount();
     }
 }

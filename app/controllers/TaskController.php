@@ -78,6 +78,10 @@ class TaskController
             return $optionsResult['error'];
         }
 
+        if ((int)$taskTypeId !== self::TASK_TYPE_OPEN) {
+            $referenceAnswer = '';
+        }
+
         $taskId = $this->taskModel->create([
             'title' => $title,
             'task_text' => $taskText,
@@ -140,6 +144,10 @@ class TaskController
 
         if ($optionsResult['error'] !== '') {
             return $optionsResult['error'];
+        }
+
+        if ((int)$taskTypeId !== self::TASK_TYPE_OPEN) {
+            $referenceAnswer = '';
         }
 
         $success = $this->taskModel->update($id, [

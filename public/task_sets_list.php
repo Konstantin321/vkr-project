@@ -2,14 +2,21 @@
 
 require_once __DIR__ . '/../app/auth/Auth.php';
 Auth::requireAuth();
+Auth::requireRole(['teacher']);
 
 require_once __DIR__ . '/../app/controllers/TaskSetController.php';
 
 $controller = new TaskSetController();
 $message = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
-    $message = $controller->delete((int)($_POST['delete_id'] ?? 0));
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
+
+    if ($action === 'delete') {
+        $message = $controller->delete((int)($_POST['delete_id'] ?? 0));
+    } elseif ($action === 'bulk_delete') {
+        $message = $controller->deleteMultiple($_POST);
+    }
 }
 
 $taskSets = $controller->index();
@@ -39,11 +46,29 @@ require __DIR__ . '/includes/layout_start.php';
     <?php if (empty($taskSets)): ?>
         <div class="empty">Наборы заданий пока не созданы.</div>
     <?php else: ?>
+        <form method="POST" id="setsBulkForm" class="bulk-actions-panel" aria-live="polite">
+            <input type="hidden" name="action" value="bulk_delete">
+
+            <div class="bulk-actions-panel__summary">
+                <span class="bulk-actions-panel__count" id="setsSelectedCount">Выбрано: 0 наборов</span>
+                <button type="button" class="btn-secondary" id="setsClearSelectionButton">Снять выбор</button>
+            </div>
+
+            <div class="bulk-actions-panel__controls">
+                <button type="submit" class="delete-btn">
+                    Удалить выбранные
+                </button>
+            </div>
+        </form>
+
         <div class="card table-card">
             <div class="table-responsive">
-                <table>
+                <table id="taskSetsTable">
                     <thead>
                     <tr>
+                        <th>
+                            <input type="checkbox" id="sets_select_all">
+                        </th>
                         <th>ID</th>
                         <th>Название</th>
                         <th>Описание</th>
@@ -56,6 +81,15 @@ require __DIR__ . '/includes/layout_start.php';
                     <tbody>
                     <?php foreach ($taskSets as $set): ?>
                         <tr>
+                            <td>
+                                <input
+                                    type="checkbox"
+                                    name="selected_set_ids[]"
+                                    value="<?= (int)$set['id'] ?>"
+                                    form="setsBulkForm"
+                                    class="set-row-checkbox"
+                                >
+                            </td>
                             <td><?= htmlspecialchars($set['id']) ?></td>
                             <td><?= htmlspecialchars($set['name']) ?></td>
                             <td><?= htmlspecialchars($set['description'] ?? '—') ?></td>
@@ -86,5 +120,88 @@ require __DIR__ . '/includes/layout_start.php';
             </div>
         </div>
     <?php endif; ?>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const selectAll = document.getElementById('sets_select_all');
+    const checkboxes = document.querySelectorAll('.set-row-checkbox');
+    const bulkForm = document.getElementById('setsBulkForm');
+    const selectedCount = document.getElementById('setsSelectedCount');
+    const clearButton = document.getElementById('setsClearSelectionButton');
+
+    if (!selectAll || !bulkForm) {
+        return;
+    }
+
+    function formatCount(count) {
+        const lastDigit = count % 10;
+        const lastTwoDigits = count % 100;
+        let word = 'наборов';
+
+        if (lastDigit === 1 && lastTwoDigits !== 11) {
+            word = 'набор';
+        } else if ([2, 3, 4].includes(lastDigit) && ![12, 13, 14].includes(lastTwoDigits)) {
+            word = 'набора';
+        }
+
+        return 'Выбрано: ' + count + ' ' + word;
+    }
+
+    function getCheckedCount() {
+        return Array.from(checkboxes).filter(function (checkbox) {
+            return checkbox.checked;
+        }).length;
+    }
+
+    function updatePanel() {
+        const checkedCount = getCheckedCount();
+        bulkForm.classList.toggle('is-visible', checkedCount > 0);
+
+        if (selectedCount) {
+            selectedCount.textContent = formatCount(checkedCount);
+        }
+
+        checkboxes.forEach(function (checkbox) {
+            const row = checkbox.closest('tr');
+            if (row) {
+                row.classList.toggle('is-selected', checkbox.checked);
+            }
+        });
+
+        selectAll.checked = checkboxes.length > 0 && Array.from(checkboxes).every(function (checkbox) {
+            return checkbox.checked;
+        });
+        selectAll.indeterminate = checkedCount > 0 && !selectAll.checked;
+    }
+
+    selectAll.addEventListener('change', function () {
+        checkboxes.forEach(function (checkbox) {
+            checkbox.checked = selectAll.checked;
+        });
+        updatePanel();
+    });
+
+    checkboxes.forEach(function (checkbox) {
+        checkbox.addEventListener('change', updatePanel);
+    });
+
+    if (clearButton) {
+        clearButton.addEventListener('click', function () {
+            checkboxes.forEach(function (checkbox) {
+                checkbox.checked = false;
+            });
+            updatePanel();
+        });
+    }
+
+    bulkForm.addEventListener('submit', function (event) {
+        if (getCheckedCount() === 0 || !confirm('Удалить выбранные наборы заданий?')) {
+            event.preventDefault();
+        }
+    });
+
+    updatePanel();
+});
+</script>
 
 <?php require __DIR__ . '/includes/layout_end.php'; ?>

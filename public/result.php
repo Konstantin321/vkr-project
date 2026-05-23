@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../app/auth/Auth.php';
 Auth::requireAuth();
+Auth::requireRole(['student', 'teacher']);
 
 require_once __DIR__ . '/../app/config/database.php';
 
@@ -26,8 +27,15 @@ $sql = "
     WHERE r.attempt_id = :attempt_id
 ";
 
+$params = [':attempt_id' => $attemptId];
+
+if (Auth::role() === 'student') {
+    $sql .= ' AND a.student_id = :student_id';
+    $params[':student_id'] = Auth::id();
+}
+
 $stmt = $pdo->prepare($sql);
-$stmt->execute([':attempt_id' => $attemptId]);
+$stmt->execute($params);
 
 $result = $stmt->fetch();
 

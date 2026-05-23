@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../app/auth/Auth.php';
 Auth::requireAuth();
+Auth::requireRole(['teacher']);
 
 require_once __DIR__ . '/../app/controllers/TaskController.php';
 
@@ -32,57 +33,63 @@ require __DIR__ . '/includes/layout_start.php';
         </div>
     </div>
 
-    <div class="card">
+    <div class="card detail-card">
         <h2>Основная информация</h2>
 
-        <div class="task-detail-row">
-            <span class="task-detail-label">ID</span>
-            <div class="task-detail-value"><?= htmlspecialchars($task['id']) ?></div>
-        </div>
+        <div class="task-detail-grid">
+            <div class="task-detail-row">
+                <span class="task-detail-label">ID</span>
+                <div class="task-detail-value">#<?= htmlspecialchars($task['id']) ?></div>
+            </div>
 
-        <div class="task-detail-row">
-            <span class="task-detail-label">Название</span>
-            <div class="task-detail-value"><?= htmlspecialchars($task['title']) ?></div>
-        </div>
+            <div class="task-detail-row task-detail-row--wide">
+                <span class="task-detail-label">Название</span>
+                <div class="task-detail-value task-detail-value--title"><?= htmlspecialchars($task['title']) ?></div>
+            </div>
 
-        <div class="task-detail-row">
-            <span class="task-detail-label">Тип задания</span>
-            <div class="task-detail-value"><?= htmlspecialchars($task['task_type_name']) ?></div>
-        </div>
+            <div class="task-detail-row">
+                <span class="task-detail-label">Тип задания</span>
+                <div class="task-detail-value">
+                    <span class="detail-badge"><?= htmlspecialchars($task['task_type_name']) ?></span>
+                </div>
+            </div>
 
-        <div class="task-detail-row">
-            <span class="task-detail-label">Дисциплина</span>
-            <div class="task-detail-value"><?= htmlspecialchars($task['discipline_name']) ?></div>
-        </div>
+            <div class="task-detail-row">
+                <span class="task-detail-label">Дисциплина</span>
+                <div class="task-detail-value"><?= htmlspecialchars($task['discipline_name']) ?></div>
+            </div>
 
-        <div class="task-detail-row">
-            <span class="task-detail-label">Папка</span>
-            <div class="task-detail-value"><?= htmlspecialchars($task['folder_name'] ?? '—') ?></div>
-        </div>
+            <div class="task-detail-row">
+                <span class="task-detail-label">Папка</span>
+                <div class="task-detail-value">
+                    <span class="detail-badge detail-badge--muted"><?= htmlspecialchars($task['folder_name'] ?? '—') ?></span>
+                </div>
+            </div>
 
-        <div class="task-detail-row">
-            <span class="task-detail-label">Автор</span>
-            <div class="task-detail-value"><?= htmlspecialchars($task['author_name']) ?></div>
-        </div>
+            <div class="task-detail-row">
+                <span class="task-detail-label">Автор</span>
+                <div class="task-detail-value"><?= htmlspecialchars($task['author_name']) ?></div>
+            </div>
 
-        <div class="task-detail-row">
-            <span class="task-detail-label">Дата создания</span>
-            <div class="task-detail-value"><?= htmlspecialchars($task['created_at']) ?></div>
+            <div class="task-detail-row">
+                <span class="task-detail-label">Дата создания</span>
+                <div class="task-detail-value"><?= htmlspecialchars($task['created_at']) ?></div>
+            </div>
         </div>
     </div>
 
-    <div class="card">
+    <div class="card detail-card">
         <h2>Содержимое задания</h2>
 
-        <div class="task-detail-row">
+        <div class="task-detail-row task-detail-row--stacked">
             <span class="task-detail-label">Текст задания</span>
-            <div class="task-detail-value"><?= htmlspecialchars($task['task_text']) ?></div>
+            <div class="task-detail-value detail-text-block"><?= htmlspecialchars($task['task_text']) ?></div>
         </div>
 
         <?php if (!empty($task['options'])): ?>
-            <div class="task-detail-row">
+            <div class="task-detail-row task-detail-row--stacked">
                 <span class="task-detail-label">Варианты ответа</span>
-                <ol class="option-list">
+                <ol class="option-list option-list--boxed">
                     <?php foreach ($task['options'] as $option): ?>
                         <li class="<?= !empty($option['is_correct']) ? 'correct-option' : '' ?>">
                             <?= htmlspecialchars($option['option_text']) ?>
@@ -94,22 +101,26 @@ require __DIR__ . '/includes/layout_start.php';
         <?php endif; ?>
     </div>
 
-    <div class="card">
+    <div class="card detail-card">
         <h2>Методические сведения</h2>
 
-        <div class="task-detail-row">
-            <span class="task-detail-label">Сложность</span>
-            <div class="task-detail-value"><?= htmlspecialchars($task['difficulty'] ?? '—') ?></div>
+        <div class="task-detail-grid">
+            <div class="task-detail-row">
+                <span class="task-detail-label">Сложность</span>
+                <div class="task-detail-value">
+                    <span class="detail-badge"><?= htmlspecialchars($task['difficulty'] ?? '—') ?></span>
+                </div>
+            </div>
+
+            <div class="task-detail-row">
+                <span class="task-detail-label">Назначение</span>
+                <div class="task-detail-value"><?= htmlspecialchars($task['purpose'] ?? '—') ?></div>
+            </div>
         </div>
 
-        <div class="task-detail-row">
-            <span class="task-detail-label">Назначение</span>
-            <div class="task-detail-value"><?= htmlspecialchars($task['purpose'] ?? '—') ?></div>
-        </div>
-
-        <div class="task-detail-row">
+        <div class="task-detail-row task-detail-row--stacked">
             <span class="task-detail-label">Эталонный ответ</span>
-            <div class="task-detail-value"><?= htmlspecialchars($task['reference_answer'] ?? '—') ?></div>
+            <div class="task-detail-value detail-text-block detail-text-block--accent"><?= htmlspecialchars($task['reference_answer'] ?? '—') ?></div>
         </div>
     </div>
 

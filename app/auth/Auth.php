@@ -6,6 +6,11 @@ require_once __DIR__ . '/../models/User.php';
 class Auth
 {
     private static string $lastError = '';
+    private const ROLE_LABELS = [
+        'student' => 'Студент',
+        'teacher' => 'Преподаватель',
+        'admin' => 'Администратор',
+    ];
 
     public static function startSession(): void
     {
@@ -65,6 +70,32 @@ class Auth
         exit;
     }
 
+    public static function requireRole(array|string $roles): void
+    {
+        self::requireAuth();
+
+        $roles = is_array($roles) ? $roles : [$roles];
+
+        if (self::hasRole($roles)) {
+            return;
+        }
+
+        http_response_code(403);
+        $pageTitle = 'Доступ запрещён';
+        require __DIR__ . '/../../public/includes/error_forbidden.php';
+        exit;
+    }
+
+    public static function hasRole(array|string $roles): bool
+    {
+        self::startSession();
+
+        $roles = is_array($roles) ? $roles : [$roles];
+        $currentRole = self::role();
+
+        return $currentRole === 'admin' || in_array($currentRole, $roles, true);
+    }
+
     public static function check(): bool
     {
         self::startSession();
@@ -101,6 +132,18 @@ class Auth
         self::startSession();
 
         return (string)($_SESSION['user_role'] ?? '');
+    }
+
+    public static function roleLabel(?string $role = null): string
+    {
+        $role = $role ?? self::role();
+
+        return self::ROLE_LABELS[$role] ?? $role;
+    }
+
+    public static function roleLabels(): array
+    {
+        return self::ROLE_LABELS;
     }
 
     public static function logout(): void

@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../app/auth/Auth.php';
 Auth::requireAuth();
+Auth::requireRole(['student']);
 
 require_once __DIR__ . '/../app/controllers/AttemptController.php';
 
@@ -27,8 +28,10 @@ require __DIR__ . '/includes/layout_start.php';
 ?>
 
     <div class="top-links">
-        <a href="task_sets_list.php">Список наборов заданий</a>
-        <a href="tasks_list.php">Список заданий</a>
+        <?php if (Auth::hasRole(['teacher'])): ?>
+            <a href="task_sets_list.php">Список наборов заданий</a>
+            <a href="tasks_list.php">Список заданий</a>
+        <?php endif; ?>
     </div>
 
     <div class="page-header">

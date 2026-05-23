@@ -77,6 +77,10 @@ class AttemptController
             return false;
         }
 
+        if (Auth::role() === 'student' && (int)$data[0]['student_id'] !== Auth::id()) {
+            return false;
+        }
+
         $taskIds = array_column($data, 'task_id');
         $optionsByTask = $this->attemptModel->getOptionsByTaskIds($taskIds);
 
@@ -154,12 +158,18 @@ class AttemptController
 
         $data = $this->attemptModel->getAttemptAnswers($attemptId);
 
+        if (!empty($data) && Auth::role() === 'student' && (int)$data[0]['student_id'] !== Auth::id()) {
+            return false;
+        }
+
         return !empty($data) ? $data : false;
     }
 
     public function index(): array
     {
-        return $this->attemptModel->getAllAttempts();
+        $studentId = Auth::role() === 'student' ? Auth::id() : null;
+
+        return $this->attemptModel->getAllAttempts($studentId);
     }
 
     public function reviewAnswer(array $postData): string

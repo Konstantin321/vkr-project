@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../app/auth/Auth.php';
 Auth::requireAuth();
+Auth::requireRole(['teacher']);
 
 require_once __DIR__ . '/../app/controllers/TaskController.php';
 
@@ -43,7 +44,10 @@ require __DIR__ . '/includes/layout_start.php';
             <h1 class="page-title">Список заданий</h1>
             <p class="page-subtitle">Управление заданиями, фильтрами и массовыми действиями.</p>
         </div>
-        <a href="create_task.php" class="btn btn-primary">Создать задание</a>
+        <div class="page-actions">
+            <a href="import_tasks.php" class="btn btn-secondary">Импорт заданий</a>
+            <a href="create_task.php" class="btn btn-primary">Создать задание</a>
+        </div>
     </div>
 
     <div class="top-links">
@@ -165,20 +169,17 @@ require __DIR__ . '/includes/layout_start.php';
             </div>
         </div>
     </form>
-    <form method="POST" id="bulkForm" class="panel bulk-panel">
+    <form method="POST" id="bulkForm" class="bulk-actions-panel" aria-live="polite">
         <input type="hidden" name="action" value="bulk">
+        <input type="hidden" name="bulk_action" id="bulk_action" value="">
 
-        <div class="toolbar-grid">
-            <div class="field">
-                <label for="bulk_action">Массовое действие</label>
-                <select name="bulk_action" id="bulk_action">
-                    <option value="">Выберите действие</option>
-                    <option value="delete">Удалить выбранные</option>
-                    <option value="move_to_folder">Переместить в папку</option>
-                </select>
-            </div>
+        <div class="bulk-actions-panel__summary">
+            <span class="bulk-actions-panel__count" id="selectedCount">Выбрано: 0</span>
+            <button type="button" class="btn-secondary" id="clearSelectionButton">Снять выбор</button>
+        </div>
 
-            <div class="field">
+        <div class="bulk-actions-panel__controls">
+            <div class="bulk-actions-panel__move">
                 <label for="bulk_folder_id">Папка для перемещения</label>
                 <select name="bulk_folder_id" id="bulk_folder_id">
                     <option value="">Без папки</option>
@@ -188,11 +189,14 @@ require __DIR__ . '/includes/layout_start.php';
                         </option>
                     <?php endforeach; ?>
                 </select>
+                <button type="submit" class="edit-btn" data-bulk-action="move_to_folder">
+                    Переместить
+                </button>
             </div>
 
-            <div class="field">
-                <button type="submit">Применить к выбранным</button>
-            </div>
+            <button type="submit" class="delete-btn" data-bulk-action="delete">
+                Удалить выбранные
+            </button>
         </div>
     </form>
     <?php if (empty($tasks)): ?>
@@ -220,7 +224,7 @@ require __DIR__ . '/includes/layout_start.php';
                     </thead>
                     <tbody>
                         <?php foreach ($tasks as $task): ?>
-                            <tr>
+                            <tr class="task-row">
                                 <td>
                                     <input
                                         type="checkbox"
@@ -332,6 +336,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (noResultsMessage) {
             noResultsMessage.style.display = visibleCount === 0 ? 'block' : 'none';
         }
+
+        document.dispatchEvent(new CustomEvent('tasksTableVisibilityChanged'));
     }
 
     if (resetLink) {
@@ -403,16 +409,114 @@ document.addEventListener('DOMContentLoaded', function () {
 document.addEventListener('DOMContentLoaded', function () {
     const selectAll = document.getElementById('select_all');
     const checkboxes = document.querySelectorAll('.row-checkbox');
+    const bulkForm = document.getElementById('bulkForm');
+    const selectedCount = document.getElementById('selectedCount');
+    const clearSelectionButton = document.getElementById('clearSelectionButton');
+    const bulkActionInput = document.getElementById('bulk_action');
+    const bulkActionButtons = document.querySelectorAll('[data-bulk-action]');
 
-    if (!selectAll) {
+    if (!selectAll || !bulkForm) {
         return;
+    }
+
+    function getCheckedCount() {
+        return Array.from(checkboxes).filter(function (checkbox) {
+            return checkbox.checked;
+        }).length;
+    }
+
+    function formatSelectedCount(count) {
+        const lastDigit = count % 10;
+        const lastTwoDigits = count % 100;
+        let word = 'заданий';
+
+        if (lastDigit === 1 && lastTwoDigits !== 11) {
+            word = 'задание';
+        } else if ([2, 3, 4].includes(lastDigit) && ![12, 13, 14].includes(lastTwoDigits)) {
+            word = 'задания';
+        }
+
+        return 'Выбрано: ' + count + ' ' + word;
+    }
+
+    function updateBulkPanel() {
+        const checkedCount = getCheckedCount();
+
+        bulkForm.classList.toggle('is-visible', checkedCount > 0);
+
+        if (selectedCount) {
+            selectedCount.textContent = formatSelectedCount(checkedCount);
+        }
+
+        checkboxes.forEach(function (checkbox) {
+            const row = checkbox.closest('tr');
+
+            if (row) {
+                row.classList.toggle('is-selected', checkbox.checked);
+            }
+        });
+
+        const visibleCheckboxes = Array.from(checkboxes).filter(function (checkbox) {
+            return checkbox.closest('tr').style.display !== 'none';
+        });
+
+        selectAll.checked = visibleCheckboxes.length > 0 && visibleCheckboxes.every(function (checkbox) {
+            return checkbox.checked;
+        });
+        selectAll.indeterminate = checkedCount > 0 && !selectAll.checked;
+    }
+
+    function clearSelection() {
+        checkboxes.forEach(function (checkbox) {
+            checkbox.checked = false;
+        });
+        updateBulkPanel();
     }
 
     selectAll.addEventListener('change', function () {
         checkboxes.forEach(function (checkbox) {
-            checkbox.checked = selectAll.checked;
+            if (checkbox.closest('tr').style.display !== 'none') {
+                checkbox.checked = selectAll.checked;
+            }
+        });
+        updateBulkPanel();
+    });
+
+    checkboxes.forEach(function (checkbox) {
+        checkbox.addEventListener('change', updateBulkPanel);
+    });
+
+    if (clearSelectionButton) {
+        clearSelectionButton.addEventListener('click', clearSelection);
+    }
+
+    document.addEventListener('tasksTableVisibilityChanged', updateBulkPanel);
+
+    bulkActionButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            bulkActionInput.value = button.dataset.bulkAction;
         });
     });
+
+    bulkForm.addEventListener('submit', function (event) {
+        const checkedCount = getCheckedCount();
+
+        if (checkedCount === 0) {
+            event.preventDefault();
+            return;
+        }
+
+        if (bulkActionInput.value === '') {
+            event.preventDefault();
+            return;
+        }
+
+        if (bulkActionInput.value === 'delete' && !confirm('Удалить выбранные задания?')) {
+            event.preventDefault();
+        }
+    });
+
+    updateBulkPanel();
 });
 </script>
 

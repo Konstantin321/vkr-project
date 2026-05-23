@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../app/auth/Auth.php';
 Auth::requireAuth();
+Auth::requireRole(['student', 'teacher']);
 
 require_once __DIR__ . '/../app/controllers/AttemptController.php';
 

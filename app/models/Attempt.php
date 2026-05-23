@@ -42,6 +42,7 @@ class Attempt
             SELECT 
                 a.id AS attempt_id,
                 a.task_set_id,
+                a.student_id,
                 ts.name AS task_set_name,
                 t.id AS task_id,
                 t.title,
@@ -144,6 +145,7 @@ class Attempt
         $sql = "
             SELECT
                 a.id AS attempt_id,
+                a.student_id,
                 a.started_at,
                 a.finished_at,
                 a.status,
@@ -178,7 +180,7 @@ class Attempt
         return $stmt->fetchAll();
     }
 
-    public function getAllAttempts(): array
+    public function getAllAttempts(?int $studentId = null): array
     {
         $sql = "
             SELECT
@@ -191,10 +193,20 @@ class Attempt
             FROM attempts a
             JOIN task_sets ts ON ts.id = a.task_set_id
             JOIN users u ON u.id = a.student_id
-            ORDER BY a.id DESC
         ";
 
-        $stmt = $this->pdo->query($sql);
+        $params = [];
+
+        if ($studentId !== null) {
+            $sql .= ' WHERE a.student_id = :student_id';
+            $params[':student_id'] = $studentId;
+        }
+
+        $sql .= ' ORDER BY a.id DESC';
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+
         return $stmt->fetchAll();
     }
 

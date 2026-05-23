@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../app/auth/Auth.php';
 Auth::requireAuth();
+Auth::requireRole(['teacher']);
 
 require_once __DIR__ . '/../app/controllers/TaskController.php';
 
@@ -216,6 +217,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const optionsSection = document.getElementById('optionsSection');
     const optionsContainer = document.getElementById('optionsContainer');
     const addOptionButton = document.getElementById('addOptionButton');
+    const referenceAnswer = document.getElementById('reference_answer');
+    const referenceAnswerLabel = document.querySelector('label[for="reference_answer"]');
+    const referenceAnswerHint = referenceAnswer ? referenceAnswer.nextElementSibling : null;
 
     function getSelectedTypeName() {
         const selectedOption = typeSelect.options[typeSelect.selectedIndex];
@@ -224,19 +228,36 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function updateOptionsMode() {
         const typeName = getSelectedTypeName();
+        const selectedTypeId = typeSelect.value;
+        const isOpen = selectedTypeId === '1';
         const isSingle = typeName.includes('один вариант');
         const isMultiple = typeName.includes('несколько вариантов');
 
-        optionsSection.style.display = isSingle || isMultiple ? 'block' : 'none';
+        const singleMode = selectedTypeId === '2' || isSingle;
+        const multipleMode = selectedTypeId === '3' || isMultiple;
+
+        [referenceAnswerLabel, referenceAnswer, referenceAnswerHint].forEach(function (element) {
+            if (!element) {
+                return;
+            }
+
+            element.style.display = isOpen ? '' : 'none';
+        });
+
+        if (referenceAnswer) {
+            referenceAnswer.disabled = !isOpen;
+        }
+
+        optionsSection.style.display = singleMode || multipleMode ? 'block' : 'none';
 
         optionsContainer.querySelectorAll('.correct-single').forEach(function (input) {
-            input.style.display = isSingle ? 'inline-block' : 'none';
-            input.disabled = !isSingle;
+            input.style.display = singleMode ? 'inline-block' : 'none';
+            input.disabled = !singleMode;
         });
 
         optionsContainer.querySelectorAll('.correct-multiple').forEach(function (input) {
-            input.style.display = isMultiple ? 'inline-block' : 'none';
-            input.disabled = !isMultiple;
+            input.style.display = multipleMode ? 'inline-block' : 'none';
+            input.disabled = !multipleMode;
         });
     }
 

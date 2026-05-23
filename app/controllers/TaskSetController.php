@@ -161,6 +161,21 @@ class TaskSetController
         return $success ? 'Задание удалено из набора.' : 'Ошибка при удалении.';
     }
 
+    public function removeMultipleTasksFromSet(array $postData): string
+    {
+        $itemIds = $postData['selected_item_ids'] ?? [];
+
+        if (!is_array($itemIds) || empty($itemIds)) {
+            return 'Не выбрано ни одного задания.';
+        }
+
+        $deletedCount = $this->taskSetModel->removeItems($itemIds);
+
+        return $deletedCount > 0
+            ? 'Выбранные задания удалены из набора.'
+            : 'Не удалось удалить выбранные задания из набора.';
+    }
+
     public function update(int $id, array $postData): string
     {
         if ($id <= 0) {
@@ -235,5 +250,20 @@ class TaskSetController
         $success = $this->taskSetModel->delete($id);
 
         return $success ? 'Набор заданий успешно удалён.' : 'Набор не найден или уже был удалён.';
+    }
+
+    public function deleteMultiple(array $postData): string
+    {
+        $ids = $postData['selected_set_ids'] ?? [];
+
+        if (!is_array($ids) || empty($ids)) {
+            return 'Не выбрано ни одного набора.';
+        }
+
+        $deletedCount = $this->taskSetModel->deleteMultiple($ids);
+
+        return $deletedCount > 0
+            ? 'Выбранные наборы заданий успешно удалены.'
+            : 'Не удалось удалить выбранные наборы.';
     }
 }

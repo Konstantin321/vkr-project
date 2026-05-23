@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../app/auth/Auth.php';
 Auth::requireAuth();
+Auth::requireRole(['teacher']);
 
 require_once __DIR__ . '/../app/controllers/TaskSetController.php';
 
@@ -15,6 +16,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = $controller->removeTaskFromSet($_POST);
     } elseif ($action === 'update_item') {
         $message = $controller->updateSetItem($_POST);
+    } elseif ($action === 'bulk_remove') {
+        $message = $controller->removeMultipleTasksFromSet($_POST);
     }
 }
 
@@ -91,11 +94,29 @@ require __DIR__ . '/includes/layout_start.php';
     <?php if (empty($items)): ?>
         <div class="empty">В этот набор пока не добавлены задания.</div>
     <?php else: ?>
+        <form method="POST" id="setItemsBulkForm" class="bulk-actions-panel" aria-live="polite">
+            <input type="hidden" name="action" value="bulk_remove">
+
+            <div class="bulk-actions-panel__summary">
+                <span class="bulk-actions-panel__count" id="setItemsSelectedCount">Выбрано: 0 заданий</span>
+                <button type="button" class="btn-secondary" id="setItemsClearSelectionButton">Снять выбор</button>
+            </div>
+
+            <div class="bulk-actions-panel__controls">
+                <button type="submit" class="delete-btn">
+                    Удалить выбранные из набора
+                </button>
+            </div>
+        </form>
+
         <div class="card table-card">
             <div class="table-responsive">
-                <table>
+                <table id="setItemsTable">
                     <thead>
                     <tr>
+                        <th>
+                            <input type="checkbox" id="set_items_select_all">
+                        </th>
                         <th>Порядок</th>
                         <th>ID задания</th>
                         <th>Название задания</th>
@@ -108,6 +129,15 @@ require __DIR__ . '/includes/layout_start.php';
                     <tbody>
                     <?php foreach ($items as $item): ?>
                         <tr>
+                            <td>
+                                <input
+                                    type="checkbox"
+                                    name="selected_item_ids[]"
+                                    value="<?= (int)$item['id'] ?>"
+                                    form="setItemsBulkForm"
+                                    class="set-item-row-checkbox"
+                                >
+                            </td>
                             <td>
                                 <form method="POST" class="inline-form">
                                     <input type="hidden" name="action" value="update_item">
@@ -122,8 +152,16 @@ require __DIR__ . '/includes/layout_start.php';
                                         required
                                     >
                             </td>
-                            <td><?= htmlspecialchars($item['task_id']) ?></td>
-                            <td><?= htmlspecialchars($item['title']) ?></td>
+                            <td>
+                                <a class="table-link" href="view_task.php?id=<?= (int)$item['task_id'] ?>">
+                                    #<?= htmlspecialchars($item['task_id']) ?>
+                                </a>
+                            </td>
+                            <td>
+                                <a class="table-link table-link--strong" href="view_task.php?id=<?= (int)$item['task_id'] ?>">
+                                    <?= htmlspecialchars($item['title']) ?>
+                                </a>
+                            </td>
                             <td><?= htmlspecialchars($item['task_type_name']) ?></td>
                             <td><?= htmlspecialchars($item['discipline_name']) ?></td>
                             <td>
@@ -156,5 +194,88 @@ require __DIR__ . '/includes/layout_start.php';
             </div>
         </div>
     <?php endif; ?>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const selectAll = document.getElementById('set_items_select_all');
+    const checkboxes = document.querySelectorAll('.set-item-row-checkbox');
+    const bulkForm = document.getElementById('setItemsBulkForm');
+    const selectedCount = document.getElementById('setItemsSelectedCount');
+    const clearButton = document.getElementById('setItemsClearSelectionButton');
+
+    if (!selectAll || !bulkForm) {
+        return;
+    }
+
+    function formatCount(count) {
+        const lastDigit = count % 10;
+        const lastTwoDigits = count % 100;
+        let word = 'заданий';
+
+        if (lastDigit === 1 && lastTwoDigits !== 11) {
+            word = 'задание';
+        } else if ([2, 3, 4].includes(lastDigit) && ![12, 13, 14].includes(lastTwoDigits)) {
+            word = 'задания';
+        }
+
+        return 'Выбрано: ' + count + ' ' + word;
+    }
+
+    function getCheckedCount() {
+        return Array.from(checkboxes).filter(function (checkbox) {
+            return checkbox.checked;
+        }).length;
+    }
+
+    function updatePanel() {
+        const checkedCount = getCheckedCount();
+        bulkForm.classList.toggle('is-visible', checkedCount > 0);
+
+        if (selectedCount) {
+            selectedCount.textContent = formatCount(checkedCount);
+        }
+
+        checkboxes.forEach(function (checkbox) {
+            const row = checkbox.closest('tr');
+            if (row) {
+                row.classList.toggle('is-selected', checkbox.checked);
+            }
+        });
+
+        selectAll.checked = checkboxes.length > 0 && Array.from(checkboxes).every(function (checkbox) {
+            return checkbox.checked;
+        });
+        selectAll.indeterminate = checkedCount > 0 && !selectAll.checked;
+    }
+
+    selectAll.addEventListener('change', function () {
+        checkboxes.forEach(function (checkbox) {
+            checkbox.checked = selectAll.checked;
+        });
+        updatePanel();
+    });
+
+    checkboxes.forEach(function (checkbox) {
+        checkbox.addEventListener('change', updatePanel);
+    });
+
+    if (clearButton) {
+        clearButton.addEventListener('click', function () {
+            checkboxes.forEach(function (checkbox) {
+                checkbox.checked = false;
+            });
+            updatePanel();
+        });
+    }
+
+    bulkForm.addEventListener('submit', function (event) {
+        if (getCheckedCount() === 0 || !confirm('Удалить выбранные задания из набора?')) {
+            event.preventDefault();
+        }
+    });
+
+    updatePanel();
+});
+</script>
 
 <?php require __DIR__ . '/includes/layout_end.php'; ?>

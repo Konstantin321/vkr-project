@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../app/auth/Auth.php';
 Auth::requireAuth();
+Auth::requireRole(['teacher']);
 
 require_once __DIR__ . '/../app/controllers/TaskSetController.php';
 
@@ -51,7 +52,7 @@ require __DIR__ . '/includes/layout_start.php';
     <?php elseif (empty($formData['tasks'])): ?>
         <div class="empty">В системе пока нет заданий для добавления в набор.</div>
     <?php else: ?>
-        <form method="POST">
+        <form method="POST" id="addTasksToSetForm">
 
             <div class="panel form-block">
                 <label for="task_set_id">Выберите набор заданий</label>
@@ -68,12 +69,27 @@ require __DIR__ . '/includes/layout_start.php';
                 </select>
             </div>
 
+            <div class="bulk-actions-panel" id="addTasksPanel" aria-live="polite">
+                <div class="bulk-actions-panel__summary">
+                    <span class="bulk-actions-panel__count" id="addTasksSelectedCount">Выбрано: 0 заданий</span>
+                    <button type="button" class="btn-secondary" id="addTasksClearSelectionButton">Снять выбор</button>
+                </div>
+
+                <div class="bulk-actions-panel__controls">
+                    <button type="submit">
+                        Добавить выбранные задания в набор
+                    </button>
+                </div>
+            </div>
+
             <div class="card table-card">
                 <div class="table-responsive">
-                    <table>
+                    <table id="availableTasksTable">
                     <thead>
                         <tr>
-                            <th>Выбрать</th>
+                            <th>
+                                <input type="checkbox" id="available_tasks_select_all">
+                            </th>
                             <th>ID</th>
                             <th>Название задания</th>
                             <th>Порядок</th>
@@ -85,11 +101,12 @@ require __DIR__ . '/includes/layout_start.php';
                             <tr>
                                 <td>
                                     <input
-                                        type="checkbox"
-                                        name="selected_tasks[]"
-                                        value="<?= (int)$task['id'] ?>"
-                                        <?= in_array((string)$task['id'], array_map('strval', $selectedTasks), true) ? 'checked' : '' ?>
-                                    >
+                                    type="checkbox"
+                                    name="selected_tasks[]"
+                                    value="<?= (int)$task['id'] ?>"
+                                    class="available-task-checkbox"
+                                    <?= in_array((string)$task['id'], array_map('strval', $selectedTasks), true) ? 'checked' : '' ?>
+                                >
                                 </td>
                                 <td><?= (int)$task['id'] ?></td>
                                 <td><?= htmlspecialchars($task['title']) ?></td>
@@ -120,9 +137,91 @@ require __DIR__ . '/includes/layout_start.php';
                     </table>
                 </div>
             </div>
-
-            <button type="submit">Добавить выбранные задания в набор</button>
         </form>
     <?php endif; ?>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const selectAll = document.getElementById('available_tasks_select_all');
+    const checkboxes = document.querySelectorAll('.available-task-checkbox');
+    const panel = document.getElementById('addTasksPanel');
+    const selectedCount = document.getElementById('addTasksSelectedCount');
+    const clearButton = document.getElementById('addTasksClearSelectionButton');
+    const form = document.getElementById('addTasksToSetForm');
+
+    if (!selectAll || !panel || !form) {
+        return;
+    }
+
+    function formatCount(count) {
+        const lastDigit = count % 10;
+        const lastTwoDigits = count % 100;
+        let word = 'заданий';
+
+        if (lastDigit === 1 && lastTwoDigits !== 11) {
+            word = 'задание';
+        } else if ([2, 3, 4].includes(lastDigit) && ![12, 13, 14].includes(lastTwoDigits)) {
+            word = 'задания';
+        }
+
+        return 'Выбрано: ' + count + ' ' + word;
+    }
+
+    function getCheckedCount() {
+        return Array.from(checkboxes).filter(function (checkbox) {
+            return checkbox.checked;
+        }).length;
+    }
+
+    function updatePanel() {
+        const checkedCount = getCheckedCount();
+        panel.classList.toggle('is-visible', checkedCount > 0);
+
+        if (selectedCount) {
+            selectedCount.textContent = formatCount(checkedCount);
+        }
+
+        checkboxes.forEach(function (checkbox) {
+            const row = checkbox.closest('tr');
+            if (row) {
+                row.classList.toggle('is-selected', checkbox.checked);
+            }
+        });
+
+        selectAll.checked = checkboxes.length > 0 && Array.from(checkboxes).every(function (checkbox) {
+            return checkbox.checked;
+        });
+        selectAll.indeterminate = checkedCount > 0 && !selectAll.checked;
+    }
+
+    selectAll.addEventListener('change', function () {
+        checkboxes.forEach(function (checkbox) {
+            checkbox.checked = selectAll.checked;
+        });
+        updatePanel();
+    });
+
+    checkboxes.forEach(function (checkbox) {
+        checkbox.addEventListener('change', updatePanel);
+    });
+
+    if (clearButton) {
+        clearButton.addEventListener('click', function () {
+            checkboxes.forEach(function (checkbox) {
+                checkbox.checked = false;
+            });
+            updatePanel();
+        });
+    }
+
+    form.addEventListener('submit', function (event) {
+        if (getCheckedCount() === 0) {
+            event.preventDefault();
+        }
+    });
+
+    updatePanel();
+});
+</script>
 
 <?php require __DIR__ . '/includes/layout_end.php'; ?>
