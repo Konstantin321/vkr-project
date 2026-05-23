@@ -23,3 +23,23 @@ SET login = 'teacher',
     password_hash = '$2y$10$JVdYca7QqAomiI8DJVS7TuZe57QIXxrRKusALlehOyx/0408sCbpS',
     role = 'teacher'
 WHERE id = 1;
+
+-- Администратор для входа на сайт: login Pavel, пароль BestOfTheBest.
+INSERT INTO users (
+    full_name,
+    login,
+    email,
+    password_hash,
+    role
+) VALUES (
+    'Pavel',
+    'Pavel',
+    'pavel@example.local',
+    '$2y$10$Xudxa71w3QGVQVjRNHtlDOqPXWaSM3Ml4plHY5UEbhAZNzNeVOEde',
+    'admin'
+)
+ON CONFLICT (login) DO UPDATE
+SET full_name = EXCLUDED.full_name,
+    email = EXCLUDED.email,
+    password_hash = EXCLUDED.password_hash,
+    role = EXCLUDED.role;
