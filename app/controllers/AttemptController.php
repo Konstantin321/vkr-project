@@ -6,6 +6,7 @@ require_once __DIR__ . '/../models/TaskSet.php';
 require_once __DIR__ . '/../models/Answer.php';
 require_once __DIR__ . '/../models/Result.php';
 require_once __DIR__ . '/../models/TeacherComment.php';
+require_once __DIR__ . '/../auth/Auth.php';
 
 class AttemptController
 {
@@ -47,8 +48,7 @@ class AttemptController
             ];
         }
 
-        // Пока используем тестового обучающегося с id = 1
-        $attemptId = $this->attemptModel->create($taskSetId, 1);
+        $attemptId = $this->attemptModel->create($taskSetId, Auth::id());
 
         if ($attemptId === false) {
             return [
@@ -197,7 +197,7 @@ class AttemptController
             $answer = $this->answerModel->getByAttemptAndTask($attemptId, $taskId);
 
             if ($answer) {
-                $this->teacherCommentModel->updateOrCreate((int)$answer['id'], 1, $commentText);
+                $this->teacherCommentModel->updateOrCreate((int)$answer['id'], Auth::id(), $commentText);
             }
         }
 

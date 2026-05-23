@@ -8,20 +8,20 @@ require_once __DIR__ . '/../app/controllers/AttemptController.php';
 $controller = new AttemptController();
 $attempts = $controller->index();
 
-$pageTitle = 'Список попыток';
-$activePage = 'attempts';
+$pageTitle = 'Проверка ответов';
+$activePage = 'review';
 require __DIR__ . '/includes/layout_start.php';
 ?>
 
     <div class="top-links">
-        <a href="start_attempt.php">Запуск попытки</a>
-        <a href="task_sets_list.php">Список наборов</a>
+        <a href="attempts_list.php">Список попыток</a>
+        <a href="results_list.php">Результаты</a>
     </div>
 
     <div class="page-header">
         <div>
-            <h1 class="page-title">Список попыток</h1>
-            <p class="page-subtitle">Просмотр попыток прохождения и переход к проверке ответов.</p>
+            <h1 class="page-title">Проверка ответов</h1>
+            <p class="page-subtitle">Выберите завершённую попытку, чтобы выставить баллы и комментарии.</p>
         </div>
     </div>
 
@@ -48,13 +48,21 @@ require __DIR__ . '/includes/layout_start.php';
                             <td><?= htmlspecialchars($attempt['id']) ?></td>
                             <td><?= htmlspecialchars($attempt['task_set_name']) ?></td>
                             <td><?= htmlspecialchars($attempt['student_name']) ?></td>
-                            <td><?= htmlspecialchars($attempt['status']) ?></td>
+                            <td>
+                                <span class="status-badge <?= $attempt['status'] === 'completed' ? 'is-success' : 'is-muted' ?>">
+                                    <?= htmlspecialchars($attempt['status']) ?>
+                                </span>
+                            </td>
                             <td><?= htmlspecialchars($attempt['started_at']) ?></td>
                             <td><?= htmlspecialchars($attempt['finished_at'] ?? '—') ?></td>
                             <td>
-                                <a href="review_attempt.php?attempt_id=<?= (int)$attempt['id'] ?>" class="view-btn">
-                                    Проверить ответы
-                                </a>
+                                <?php if ($attempt['status'] === 'completed'): ?>
+                                    <a href="review_attempt.php?attempt_id=<?= (int)$attempt['id'] ?>" class="view-btn">
+                                        Проверить ответы
+                                    </a>
+                                <?php else: ?>
+                                    <span class="muted-text">Попытка ещё не завершена</span>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>

@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/../app/auth/Auth.php';
+Auth::requireAuth();
+
 require_once __DIR__ . '/../app/controllers/AttemptController.php';
 
 $controller = new AttemptController();
@@ -24,81 +27,18 @@ if (!$data) {
 }
 
 $taskSetName = $data[0]['task_set_name'];
+
+$pageTitle = 'Прохождение теста';
+$activePage = 'control';
+require __DIR__ . '/includes/layout_start.php';
 ?>
 
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Прохождение теста</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 40px;
-        }
-
-        h1 {
-            margin-bottom: 20px;
-        }
-
-        .message {
-            margin-bottom: 20px;
-            padding: 10px;
-            background: #eeeeee;
-            border: 1px solid #dddddd;
-            max-width: 900px;
-        }
-
-        .task {
-            border: 1px solid #dddddd;
-            padding: 20px;
-            margin-bottom: 20px;
-            background: #fafafa;
-            max-width: 900px;
-        }
-
-        .task-title {
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-
-        .task-text {
-            white-space: pre-wrap;
-            margin-bottom: 10px;
-        }
-
-        .meta {
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
-
-        textarea {
-            width: 100%;
-            padding: 8px;
-            box-sizing: border-box;
-        }
-
-        .answer-option {
-            display: block;
-            margin-top: 8px;
-            line-height: 1.4;
-        }
-
-        .answer-option input {
-            margin-right: 8px;
-        }
-
-        button {
-            margin-top: 20px;
-            padding: 10px 20px;
-            cursor: pointer;
-        }
-    </style>
-</head>
-<body>
-
-    <h1>Прохождение набора: <?= htmlspecialchars($taskSetName) ?></h1>
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Прохождение набора</h1>
+            <p class="page-subtitle"><?= htmlspecialchars($taskSetName) ?></p>
+        </div>
+    </div>
 
     <?php if ($message !== ''): ?>
         <div class="message">
@@ -174,11 +114,8 @@ $taskSetName = $data[0]['task_set_name'];
             </div>
         <?php endforeach; ?>
 
-        <button type="submit">
-            Завершить попытку
-        </button>
+        <button type="submit">Завершить попытку</button>
 
     </form>
 
-</body>
-</html>
+<?php require __DIR__ . '/includes/layout_end.php'; ?>

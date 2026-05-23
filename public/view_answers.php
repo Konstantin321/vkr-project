@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/../app/auth/Auth.php';
+Auth::requireAuth();
+
 require_once __DIR__ . '/../app/controllers/AttemptController.php';
 
 $controller = new AttemptController();
@@ -12,118 +15,45 @@ if (!$data) {
 }
 
 $attemptInfo = $data[0];
+
+$pageTitle = 'Просмотр ответов';
+$activePage = 'results';
+require __DIR__ . '/includes/layout_start.php';
 ?>
-
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Просмотр ответов</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 40px;
-        }
-
-        h1 {
-            margin-bottom: 20px;
-        }
-
-        .top-links {
-            margin-bottom: 20px;
-        }
-
-        .top-links a {
-            display: inline-block;
-            margin-right: 15px;
-            text-decoration: none;
-            color: #0a58ca;
-        }
-
-        .card {
-            border: 1px solid #dddddd;
-            background: #fafafa;
-            padding: 20px;
-            margin-bottom: 25px;
-            max-width: 900px;
-        }
-
-        .row {
-            margin-bottom: 15px;
-        }
-
-        .label {
-            font-weight: bold;
-            display: block;
-            margin-bottom: 5px;
-        }
-
-        .value {
-            white-space: pre-wrap;
-            line-height: 1.5;
-        }
-
-        .task {
-            border: 1px solid #dddddd;
-            background: #ffffff;
-            padding: 20px;
-            margin-bottom: 20px;
-            max-width: 900px;
-        }
-
-        .task-title {
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-
-        .task-text {
-            white-space: pre-wrap;
-            margin-bottom: 10px;
-        }
-
-        .answer {
-            margin-top: 15px;
-            padding: 15px;
-            background: #f6f6f6;
-            border: 1px solid #dddddd;
-            white-space: pre-wrap;
-        }
-
-        .meta {
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
-    </style>
-</head>
-<body>
 
     <div class="top-links">
         <a href="result.php?attempt_id=<?= (int)$attemptInfo['attempt_id'] ?>">Результат попытки</a>
         <a href="start_attempt.php">Запуск новой попытки</a>
     </div>
 
-    <h1>Просмотр ответов</h1>
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Просмотр ответов</h1>
+            <p class="page-subtitle">Ответы обучающегося и сведения о попытке.</p>
+        </div>
+    </div>
 
     <div class="card">
-        <div class="row">
-            <span class="label">Набор заданий</span>
-            <div class="value"><?= htmlspecialchars($attemptInfo['task_set_name']) ?></div>
+        <h2>Информация о попытке</h2>
+
+        <div class="task-detail-row">
+            <span class="task-detail-label">Набор заданий</span>
+            <div class="task-detail-value"><?= htmlspecialchars($attemptInfo['task_set_name']) ?></div>
         </div>
 
-        <div class="row">
-            <span class="label">Статус попытки</span>
-            <div class="value"><?= htmlspecialchars($attemptInfo['status']) ?></div>
+        <div class="task-detail-row">
+            <span class="task-detail-label">Статус попытки</span>
+            <div class="task-detail-value"><?= htmlspecialchars($attemptInfo['status']) ?></div>
         </div>
 
-        <div class="row">
-            <span class="label">Время начала</span>
-            <div class="value"><?= htmlspecialchars($attemptInfo['started_at']) ?></div>
+        <div class="task-detail-row">
+            <span class="task-detail-label">Время начала</span>
+            <div class="task-detail-value"><?= htmlspecialchars($attemptInfo['started_at']) ?></div>
         </div>
 
-        <div class="row">
-            <span class="label">Время завершения</span>
-            <div class="value"><?= htmlspecialchars($attemptInfo['finished_at'] ?? '—') ?></div>
+        <div class="task-detail-row">
+            <span class="task-detail-label">Время завершения</span>
+            <div class="task-detail-value"><?= htmlspecialchars($attemptInfo['finished_at'] ?? '—') ?></div>
         </div>
     </div>
 
@@ -150,5 +80,4 @@ $attemptInfo = $data[0];
         </div>
     <?php endforeach; ?>
 
-</body>
-</html>
+<?php require __DIR__ . '/includes/layout_end.php'; ?>

@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/../app/auth/Auth.php';
+Auth::requireAuth();
+
 require_once __DIR__ . '/../app/controllers/TaskController.php';
 
 $controller = new TaskController();
@@ -128,129 +131,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+$pageTitle = 'Создание задания';
+$activePage = 'tasks';
+require __DIR__ . '/includes/layout_start.php';
 ?>
 
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Создание задания</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 40px;
-        }
-
-        .top-links {
-            margin-bottom: 20px;
-        }
-
-        .top-links a {
-            display: inline-block;
-            margin-right: 15px;
-            text-decoration: none;
-            color: #0a58ca;
-        }
-
-        .form-section {
-            max-width: 700px;
-            padding: 20px;
-            margin-bottom: 25px;
-            border: 1px solid #dddddd;
-            background: #fafafa;
-        }
-
-        .form-section h2 {
-            margin-top: 0;
-            margin-bottom: 15px;
-            font-size: 22px;
-        }
-
-        .field-hint {
-            display: block;
-            margin-top: 5px;
-            color: #666666;
-            font-size: 13px;
-        }
-
-        .form-actions {
-            max-width: 700px;
-            margin-top: 20px;
-        }
-
-        .copy-box {
-            max-width: 700px;
-            padding: 20px;
-            margin-bottom: 25px;
-            border: 1px solid #dddddd;
-            background: #f5f9ff;
-        }
-
-        .copy-box h2 {
-            margin-top: 0;
-            margin-bottom: 15px;
-            font-size: 22px;
-        }
-
-        form {
-            max-width: 700px;
-        }
-
-        label {
-            display: block;
-            margin-top: 15px;
-            font-weight: bold;
-        }
-
-        input, textarea, select {
-            width: 100%;
-            padding: 8px;
-            margin-top: 5px;
-            box-sizing: border-box;
-        }
-
-        .option-row {
-            display: grid;
-            grid-template-columns: 1fr 170px;
-            gap: 12px;
-            align-items: center;
-            margin-top: 12px;
-        }
-
-        .option-correct {
-            font-weight: normal;
-            margin-top: 0;
-        }
-
-        .option-correct input {
-            width: auto;
-            margin-right: 6px;
-        }
-
-        button {
-            margin-top: 20px;
-            padding: 10px 20px;
-        }
-
-        .message {
-            margin-bottom: 20px;
-            padding: 10px;
-            background: #f0f0f0;
-            border: 1px solid #dddddd;
-            max-width: 700px;
-        }
-    </style>
-</head>
-<body>
-
     <div class="top-links">
-        <a href="tasks_list.php">← Назад к списку заданий</a>
+        <a href="tasks_list.php">Назад к списку заданий</a>
         <a href="task_sets_list.php">Наборы заданий</a>
     </div>
 
-    <h1>Создание задания</h1>
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Создание задания</h1>
+            <p class="page-subtitle">Заполните основные сведения, классификацию и методические данные.</p>
+        </div>
+    </div>
 
-    <form method="POST" style="margin-bottom: 20px;">
+    <form method="POST" class="panel task-form">
         <input type="hidden" name="form_action" value="show_copy_section">
         <button type="submit">Создать на основе существующего</button>
     </form>
@@ -279,12 +178,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?php endforeach; ?>
                 </select>
 
-                <button type="submit" style="margin-top: 15px;">Подставить данные</button>
+                <button type="submit">Подставить данные</button>
             </form>
         </div>
     <?php endif; ?>
 
-    <form method="POST">
+    <form method="POST" class="task-form">
         <input type="hidden" name="form_action" value="save_task">
         <input type="hidden" name="show_copy_section_state" value="<?= $showCopySection ? '1' : '0' ?>">
         <input type="hidden" name="copy_task_id_state" value="<?= htmlspecialchars($selectedCopyTaskId) ?>">
@@ -430,7 +329,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <div class="form-actions">
             <button type="submit">Сохранить задание</button>
-            <a href="tasks_list.php" style="margin-left: 15px;">Отмена</a>
+            <a href="tasks_list.php">Отмена</a>
         </div>
     </form>
 
@@ -491,5 +390,4 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
-</body>
-</html>
+<?php require __DIR__ . '/includes/layout_end.php'; ?>

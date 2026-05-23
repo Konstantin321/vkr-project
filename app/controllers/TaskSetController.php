@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/TaskSet.php';
+require_once __DIR__ . '/../auth/Auth.php';
 
 class TaskSetController
 {
@@ -28,7 +29,7 @@ class TaskSetController
             'name' => $name,
             'description' => $description,
             'execution_time_minutes' => $time,
-            'created_by' => 1,
+            'created_by' => Auth::id(),
         ]);
 
         return $success ? 'Набор заданий создан.' : 'Ошибка при создании.';

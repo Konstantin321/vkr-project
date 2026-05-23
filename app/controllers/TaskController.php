@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Task.php';
+require_once __DIR__ . '/../auth/Auth.php';
 
 class TaskController
 {
@@ -86,7 +87,7 @@ class TaskController
             'task_type_id' => (int)$taskTypeId,
             'discipline_id' => (int)$disciplineId,
             'folder_id' => $folderId,
-            'author_id' => 1,
+            'author_id' => Auth::id(),
         ]);
 
         if ($taskId === false) {

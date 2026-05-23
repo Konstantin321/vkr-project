@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/../app/auth/Auth.php';
+Auth::requireAuth();
+
 require_once __DIR__ . '/../app/controllers/AttemptController.php';
 
 $controller = new AttemptController();
@@ -25,105 +28,11 @@ if (!$data) {
 
 $attemptInfo = $data[0];
 $isReviewFinished = $controller->isReviewFinished($attemptId);
+
+$pageTitle = 'Проверка ответов';
+$activePage = 'review';
+require __DIR__ . '/includes/layout_start.php';
 ?>
-
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Проверка ответов</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 40px;
-        }
-
-        h1 {
-            margin-bottom: 20px;
-        }
-
-        .top-links {
-            margin-bottom: 20px;
-        }
-
-        .top-links a {
-            display: inline-block;
-            margin-right: 15px;
-            text-decoration: none;
-            color: #0a58ca;
-        }
-
-        .message {
-            margin-bottom: 20px;
-            padding: 10px;
-            background: #eeeeee;
-            border: 1px solid #dddddd;
-            max-width: 900px;
-        }
-
-        .task {
-            border: 1px solid #dddddd;
-            background: #ffffff;
-            padding: 20px;
-            margin-bottom: 20px;
-            max-width: 900px;
-        }
-
-        .task-title {
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-
-        .task-text {
-            white-space: pre-wrap;
-            margin-bottom: 10px;
-        }
-
-        .answer {
-            margin-top: 10px;
-            margin-bottom: 15px;
-            padding: 15px;
-            background: #f6f6f6;
-            border: 1px solid #dddddd;
-            white-space: pre-wrap;
-        }
-
-        .saved-score {
-            margin-bottom: 15px;
-            padding: 10px;
-            background: #f6f6f6;
-            border: 1px solid #dddddd;
-        }
-
-        .saved-comment {
-            margin-bottom: 15px;
-            padding: 10px;
-            background: #eef6ff;
-            border: 1px solid #cfe2ff;
-            white-space: pre-wrap;
-        }
-
-        label {
-            display: block;
-            margin-top: 10px;
-            font-weight: bold;
-        }
-
-        input, textarea {
-            width: 100%;
-            padding: 8px;
-            box-sizing: border-box;
-            margin-top: 5px;
-        }
-
-        button {
-            margin-top: 15px;
-            padding: 10px 18px;
-            cursor: pointer;
-        }
-    </style>
-</head>
-<body>
 
     <div class="top-links">
         <a href="attempts_list.php">Список попыток</a>
@@ -131,10 +40,15 @@ $isReviewFinished = $controller->isReviewFinished($attemptId);
         <a href="result.php?attempt_id=<?= (int)$attemptInfo['attempt_id'] ?>">Результат попытки</a>
     </div>
 
-    <h1>Проверка ответов по попытке #<?= (int)$attemptInfo['attempt_id'] ?></h1>
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Проверка ответов</h1>
+            <p class="page-subtitle">Попытка #<?= (int)$attemptInfo['attempt_id'] ?>: выставление баллов и комментариев.</p>
+        </div>
+    </div>
 
     <?php if ($isReviewFinished): ?>
-        <div class="message" style="background: #e8f5e9; border: 1px solid #c8e6c9;">
+        <div class="message">
             Проверка этой попытки уже завершена. Редактирование недоступно.
         </div>
     <?php endif; ?>
@@ -199,15 +113,15 @@ $isReviewFinished = $controller->isReviewFinished($attemptId);
     <?php endforeach; ?>
 
     <?php if (!$isReviewFinished): ?>
-        <form method="POST" style="max-width: 900px; margin-top: 30px;">
+        <form method="POST" class="form-section">
+            <h2>Завершение проверки</h2>
             <input type="hidden" name="action" value="finish_review">
             <input type="hidden" name="attempt_id" value="<?= (int)$attemptInfo['attempt_id'] ?>">
 
-            <button type="submit" style="padding: 12px 20px; font-size: 16px;">
+            <button type="submit">
                 Завершить проверку
             </button>
         </form>
     <?php endif; ?>
 
-</body>
-</html>
+<?php require __DIR__ . '/includes/layout_end.php'; ?>

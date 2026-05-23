@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/../app/auth/Auth.php';
+Auth::requireAuth();
+
 require_once __DIR__ . '/../app/controllers/TaskController.php';
 
 $controller = new TaskController();
@@ -36,107 +39,30 @@ if (empty($options)) {
         ['option_text' => '', 'is_correct' => false],
     ];
 }
+
+$pageTitle = 'Редактирование задания';
+$activePage = 'tasks';
+require __DIR__ . '/includes/layout_start.php';
 ?>
 
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Редактирование задания</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 40px;
-        }
-        .form-section {
-            max-width: 700px;
-            padding: 20px;
-            margin-bottom: 25px;
-            border: 1px solid #dddddd;
-            background: #fafafa;
-        }
-
-        .form-section h2 {
-            margin-top: 0;
-            margin-bottom: 15px;
-            font-size: 22px;
-        }
-
-        .field-hint {
-            display: block;
-            margin-top: 5px;
-            color: #666666;
-            font-size: 13px;
-        }
-
-        .form-actions {
-            max-width: 700px;
-            margin-top: 20px;
-        }
-        form {
-            max-width: 700px;
-        }
-        label {
-            display: block;
-            margin-top: 15px;
-            font-weight: bold;
-        }
-        input, textarea, select {
-            width: 100%;
-            padding: 8px;
-            margin-top: 5px;
-            box-sizing: border-box;
-        }
-        .option-row {
-            display: grid;
-            grid-template-columns: 1fr 170px;
-            gap: 12px;
-            align-items: center;
-            margin-top: 12px;
-        }
-        .option-correct {
-            font-weight: normal;
-            margin-top: 0;
-        }
-        .option-correct input {
-            width: auto;
-            margin-right: 6px;
-        }
-        button {
-            margin-top: 20px;
-            padding: 10px 20px;
-        }
-        .message {
-            margin-bottom: 20px;
-            padding: 10px;
-            background: #f0f0f0;
-            border: 1px solid #dddddd;
-        }
-        .top-links {
-            margin-bottom: 20px;
-        }
-        .top-links a {
-            margin-right: 15px;
-            text-decoration: none;
-            color: #0a58ca;
-        }
-    </style>
-</head>
-<body>
-
     <div class="top-links">
-        <a href="tasks_list.php">← Назад к списку заданий</a>
+        <a href="tasks_list.php">Назад к списку заданий</a>
         <a href="view_task.php?id=<?= (int)$task['id'] ?>">Просмотр задания</a>
         <a href="task_sets_list.php">Наборы заданий</a>
     </div>
 
-    <h1>Редактирование задания</h1>
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Редактирование задания</h1>
+            <p class="page-subtitle">Изменение содержимого, классификации и методических сведений.</p>
+        </div>
+    </div>
 
     <?php if ($message !== ''): ?>
         <div class="message"><?= htmlspecialchars($message) ?></div>
     <?php endif; ?>
 
-    <form method="POST">
+    <form method="POST" class="task-form">
         <div class="form-section">
             <h2>Основные сведения</h2>
         <label for="title">Название задания *</label>
@@ -280,7 +206,7 @@ if (empty($options)) {
 
         <div class="form-actions">
             <button type="submit">Сохранить изменения</button>
-            <a href="view_task.php?id=<?= (int)$task['id'] ?>" style="margin-left: 15px;">Отмена</a>
+            <a href="view_task.php?id=<?= (int)$task['id'] ?>">Отмена</a>
         </div>
     </form>
 
@@ -341,5 +267,4 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
-</body>
-</html>
+<?php require __DIR__ . '/includes/layout_end.php'; ?>

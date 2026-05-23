@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/../app/auth/Auth.php';
+Auth::requireAuth();
+
 require_once __DIR__ . '/../app/controllers/TaskSetController.php';
 
 $controller = new TaskSetController();
@@ -8,43 +11,44 @@ $message = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $message = $controller->store($_POST);
 }
+
+$pageTitle = 'Создание набора заданий';
+$activePage = 'sets';
+require __DIR__ . '/includes/layout_start.php';
 ?>
 
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Создание набора заданий</title>
-    <style>
-        body { font-family: Arial; margin: 40px; }
-        input, textarea { width: 100%; padding: 8px; margin-top: 5px; }
-        label { margin-top: 15px; display: block; font-weight: bold; }
-        button { margin-top: 20px; padding: 10px 15px; }
-        .message { margin-bottom: 15px; padding: 10px; background: #eee; }
-    </style>
-</head>
-<body>
+<div class="top-links">
+    <a href="task_sets_list.php">Назад к списку наборов</a>
+    <a href="tasks_list.php">Список заданий</a>
+</div>
 
-<h1>Создание набора заданий</h1>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Создание набора заданий</h1>
+        <p class="page-subtitle">Задайте название, описание и время выполнения набора.</p>
+    </div>
+</div>
 
 <?php if ($message): ?>
     <div class="message"><?= htmlspecialchars($message) ?></div>
 <?php endif; ?>
 
-<form method="POST">
+<form method="POST" class="form-section">
+    <h2>Основные сведения</h2>
 
-    <label>Название *</label>
-    <input type="text" name="name" required>
+    <label for="name">Название *</label>
+    <input type="text" name="name" id="name" required>
 
-    <label>Описание</label>
-    <textarea name="description"></textarea>
+    <label for="description">Описание</label>
+    <textarea name="description" id="description" rows="5"></textarea>
 
-    <label>Время выполнения (минуты) *</label>
-    <input type="number" name="execution_time_minutes" required>
+    <label for="execution_time_minutes">Время выполнения (минуты) *</label>
+    <input type="number" name="execution_time_minutes" id="execution_time_minutes" min="1" required>
 
-    <button type="submit">Создать набор</button>
+    <div class="form-actions">
+        <button type="submit">Создать набор</button>
+    </div>
 
 </form>
 
-</body>
-</html>
+<?php require __DIR__ . '/includes/layout_end.php'; ?>

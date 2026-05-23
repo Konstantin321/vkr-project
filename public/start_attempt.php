@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/../app/auth/Auth.php';
+Auth::requireAuth();
+
 require_once __DIR__ . '/../app/controllers/AttemptController.php';
 
 $controller = new AttemptController();
@@ -17,82 +20,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $message = $result['message'];
 }
 $taskSets = $controller->getTaskSets();
+
+$pageTitle = 'Запуск попытки прохождения';
+$activePage = 'control';
+require __DIR__ . '/includes/layout_start.php';
 ?>
-
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Запуск попытки прохождения</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 40px;
-        }
-
-        h1 {
-            margin-bottom: 20px;
-        }
-
-        .top-links {
-            margin-bottom: 20px;
-        }
-
-        .top-links a {
-            display: inline-block;
-            margin-right: 15px;
-            text-decoration: none;
-            color: #0a58ca;
-        }
-
-        .message {
-            margin-bottom: 20px;
-            padding: 10px;
-            background: #f0f0f0;
-            border: 1px solid #dddddd;
-            max-width: 700px;
-        }
-
-        .form-block {
-            max-width: 700px;
-            padding: 20px;
-            border: 1px solid #dddddd;
-            background: #fafafa;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
-
-        select {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 15px;
-        }
-
-        button {
-            padding: 10px 18px;
-            cursor: pointer;
-        }
-
-        .empty {
-            padding: 20px;
-            background: #f8f8f8;
-            border: 1px solid #dddddd;
-            max-width: 700px;
-        }
-    </style>
-</head>
-<body>
 
     <div class="top-links">
         <a href="task_sets_list.php">Список наборов заданий</a>
         <a href="tasks_list.php">Список заданий</a>
     </div>
 
-    <h1>Запуск попытки прохождения</h1>
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Запуск попытки прохождения</h1>
+            <p class="page-subtitle">Выберите набор заданий и начните контроль.</p>
+        </div>
+    </div>
 
     <?php if ($message !== ''): ?>
         <div class="message">
@@ -107,7 +51,9 @@ $taskSets = $controller->getTaskSets();
     <?php if (empty($taskSets)): ?>
         <div class="empty">Нет доступных наборов заданий для запуска.</div>
     <?php else: ?>
-        <form method="POST" class="form-block">
+        <form method="POST" class="form-section">
+            <h2>Параметры запуска</h2>
+
             <label for="task_set_id">Выберите набор заданий</label>
             <select name="task_set_id" id="task_set_id" required>
                 <option value="">Выберите набор</option>
@@ -118,9 +64,10 @@ $taskSets = $controller->getTaskSets();
                 <?php endforeach; ?>
             </select>
 
-            <button type="submit">Начать попытку</button>
+            <div class="form-actions">
+                <button type="submit">Начать попытку</button>
+            </div>
         </form>
     <?php endif; ?>
 
-</body>
-</html>
+<?php require __DIR__ . '/includes/layout_end.php'; ?>
