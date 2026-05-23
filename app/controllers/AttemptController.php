@@ -14,6 +14,9 @@ class AttemptController
     private Answer $answerModel;
     private Result $resultModel;
     private TeacherComment $teacherCommentModel;
+    private const TASK_TYPE_OPEN = 1;
+    private const TASK_TYPE_SINGLE = 2;
+    private const TASK_TYPE_MULTIPLE = 3;
 
     public function __construct()
     {
@@ -70,7 +73,20 @@ class AttemptController
 
         $data = $this->attemptModel->getAttemptWithTasks($attemptId);
 
-        return !empty($data) ? $data : false;
+        if (empty($data)) {
+            return false;
+        }
+
+        $taskIds = array_column($data, 'task_id');
+        $optionsByTask = $this->attemptModel->getOptionsByTaskIds($taskIds);
+
+        foreach ($data as &$task) {
+            $task['options'] = $optionsByTask[(int)$task['task_id']] ?? [];
+        }
+
+        unset($task);
+
+        return $data;
     }
 
     public function submitAnswers(int $attemptId, array $postData): string
@@ -93,13 +109,26 @@ class AttemptController
             return 'Ответы не переданы.';
         }
 
-        foreach ($postData['answers'] as $taskId => $answerText) {
-            $taskId = (int)$taskId;
-            $answerText = trim($answerText);
+        $attemptTasks = $this->show($attemptId);
 
-            if ($taskId <= 0) {
+        if (!$attemptTasks) {
+            return 'Не удалось получить задания попытки.';
+        }
+
+        $tasksById = [];
+
+        foreach ($attemptTasks as $task) {
+            $tasksById[(int)$task['task_id']] = $task;
+        }
+
+        foreach ($postData['answers'] as $taskId => $answerValue) {
+            $taskId = (int)$taskId;
+
+            if ($taskId <= 0 || !isset($tasksById[$taskId])) {
                 continue;
             }
+
+            $answerText = $this->prepareAnswerText($tasksById[$taskId], $answerValue);
 
             $this->answerModel->save($attemptId, $taskId, $answerText);
         }
@@ -219,5 +248,32 @@ class AttemptController
         }
 
         return $this->resultModel->isReviewFinished($attemptId);
+    }
+
+    private function prepareAnswerText(array $task, mixed $answerValue): string
+    {
+        $taskTypeId = (int)($task['task_type_id'] ?? self::TASK_TYPE_OPEN);
+
+        if ($taskTypeId === self::TASK_TYPE_OPEN) {
+            return trim((string)$answerValue);
+        }
+
+        $selectedIds = is_array($answerValue) ? $answerValue : [$answerValue];
+        $selectedIds = array_map('intval', $selectedIds);
+        $selectedIds = array_filter($selectedIds, fn($id) => $id > 0);
+
+        if (empty($selectedIds)) {
+            return '';
+        }
+
+        $optionTexts = [];
+
+        foreach (($task['options'] ?? []) as $option) {
+            if (in_array((int)$option['id'], $selectedIds, true)) {
+                $optionTexts[] = $option['option_text'];
+            }
+        }
+
+        return implode('; ', $optionTexts);
     }
 }

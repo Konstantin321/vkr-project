@@ -66,6 +66,16 @@ if (!$task) {
             white-space: pre-wrap;
             line-height: 1.5;
         }
+
+        .option-list {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .correct-option {
+            font-weight: bold;
+            color: #157347;
+        }
     </style>
 </head>
 <body>
@@ -124,6 +134,20 @@ if (!$task) {
             <span class="label">Текст задания</span>
             <div class="value"><?= htmlspecialchars($task['task_text']) ?></div>
         </div>
+
+        <?php if (!empty($task['options'])): ?>
+            <div class="row">
+                <span class="label">Варианты ответа</span>
+                <ol class="option-list">
+                    <?php foreach ($task['options'] as $option): ?>
+                        <li class="<?= !empty($option['is_correct']) ? 'correct-option' : '' ?>">
+                            <?= htmlspecialchars($option['option_text']) ?>
+                            <?= !empty($option['is_correct']) ? ' — правильный' : '' ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ol>
+            </div>
+        <?php endif; ?>
     </div>
 
     <div class="card">

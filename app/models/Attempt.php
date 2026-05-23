@@ -46,12 +46,15 @@ class Attempt
                 t.id AS task_id,
                 t.title,
                 t.task_text,
+                t.task_type_id,
+                tt.name AS task_type_name,
                 tsi.order_number,
                 tsi.max_score
             FROM attempts a
             JOIN task_sets ts ON ts.id = a.task_set_id
             JOIN task_set_items tsi ON tsi.task_set_id = ts.id
             JOIN tasks t ON t.id = tsi.task_id
+            JOIN task_types tt ON tt.id = t.task_type_id
             WHERE a.id = :attempt_id
             ORDER BY tsi.order_number
         ";
@@ -60,6 +63,47 @@ class Attempt
         $stmt->execute([':attempt_id' => $attemptId]);
 
         return $stmt->fetchAll();
+    }
+
+    public function getOptionsByTaskIds(array $taskIds): array
+    {
+        $taskIds = array_values(array_unique(array_filter(array_map('intval', $taskIds))));
+
+        if (empty($taskIds)) {
+            return [];
+        }
+
+        $placeholders = [];
+        $params = [];
+
+        foreach ($taskIds as $index => $taskId) {
+            $key = ':task_id_' . $index;
+            $placeholders[] = $key;
+            $params[$key] = $taskId;
+        }
+
+        $sql = '
+            SELECT
+                id,
+                task_id,
+                option_text,
+                CASE WHEN is_correct THEN 1 ELSE 0 END AS is_correct,
+                sort_order
+            FROM task_options
+            WHERE task_id IN (' . implode(', ', $placeholders) . ')
+            ORDER BY task_id ASC, sort_order ASC, id ASC
+        ';
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+
+        $grouped = [];
+
+        foreach ($stmt->fetchAll() as $option) {
+            $grouped[(int)$option['task_id']][] = $option;
+        }
+
+        return $grouped;
     }
 
     public function finish(int $attemptId): bool
@@ -107,6 +151,8 @@ class Attempt
                 t.id AS task_id,
                 t.title,
                 t.task_text,
+                t.task_type_id,
+                tt.name AS task_type_name,
                 tsi.order_number,
                 tsi.max_score,
                 ans.answer_text,
@@ -116,6 +162,7 @@ class Attempt
             JOIN task_sets ts ON ts.id = a.task_set_id
             JOIN task_set_items tsi ON tsi.task_set_id = ts.id
             JOIN tasks t ON t.id = tsi.task_id
+            JOIN task_types tt ON tt.id = t.task_type_id
             LEFT JOIN answers ans
                 ON ans.attempt_id = a.id
             AND ans.task_id = t.id

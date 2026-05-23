@@ -27,7 +27,7 @@ class Task
         return $stmt->fetchAll();
     }
 
-    public function create(array $data): bool
+    public function create(array $data): int|false
     {
         $sql = '
             INSERT INTO tasks (
@@ -55,7 +55,7 @@ class Task
 
         $stmt = $this->pdo->prepare($sql);
 
-        return $stmt->execute([
+        $success = $stmt->execute([
             ':title' => $data['title'],
             ':task_text' => $data['task_text'],
             ':difficulty' => $data['difficulty'],
@@ -66,6 +66,8 @@ class Task
             ':folder_id' => $data['folder_id'] !== '' ? $data['folder_id'] : null,
             ':author_id' => $data['author_id'],
         ]);
+
+        return $success ? (int)$this->pdo->lastInsertId('tasks_id_seq') : false;
     }
 
     public function getAll(): array
@@ -146,7 +148,7 @@ class Task
             ':folder_id' => $data['folder_id'] !== '' ? $data['folder_id'] : null,
         ]);
 
-        return $stmt->rowCount() > 0;
+        return true;
     }
 
     public function delete(int $id): bool
@@ -168,6 +170,7 @@ class Task
                 t.difficulty,
                 t.purpose,
                 t.reference_answer,
+                t.task_type_id,
                 t.created_at,
                 tt.name AS task_type_name,
                 d.name AS discipline_name,
@@ -185,6 +188,63 @@ class Task
         $stmt->execute([':id' => $id]);
 
         return $stmt->fetch();
+    }
+
+    public function getOptionsByTaskId(int $taskId): array
+    {
+        $sql = '
+            SELECT
+                id,
+                task_id,
+                option_text,
+                CASE WHEN is_correct THEN 1 ELSE 0 END AS is_correct,
+                sort_order
+            FROM task_options
+            WHERE task_id = :task_id
+            ORDER BY sort_order ASC, id ASC
+        ';
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([':task_id' => $taskId]);
+
+        return $stmt->fetchAll();
+    }
+
+    public function replaceOptions(int $taskId, array $options): bool
+    {
+        $deleteStmt = $this->pdo->prepare('DELETE FROM task_options WHERE task_id = :task_id');
+        $deleteStmt->execute([':task_id' => $taskId]);
+
+        if (empty($options)) {
+            return true;
+        }
+
+        $sql = '
+            INSERT INTO task_options (
+                task_id,
+                option_text,
+                is_correct,
+                sort_order
+            ) VALUES (
+                :task_id,
+                :option_text,
+                :is_correct,
+                :sort_order
+            )
+        ';
+
+        $stmt = $this->pdo->prepare($sql);
+
+        foreach ($options as $index => $option) {
+            $stmt->execute([
+                ':task_id' => $taskId,
+                ':option_text' => $option['option_text'],
+                ':is_correct' => !empty($option['is_correct']),
+                ':sort_order' => $index + 1,
+            ]);
+        }
+
+        return true;
     }
 
     public function getAllWithFilters(array $filters): array

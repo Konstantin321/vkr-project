@@ -79,6 +79,16 @@ $taskSetName = $data[0]['task_set_name'];
             box-sizing: border-box;
         }
 
+        .answer-option {
+            display: block;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+
+        .answer-option input {
+            margin-right: 8px;
+        }
+
         button {
             margin-top: 20px;
             padding: 10px 20px;
@@ -114,10 +124,52 @@ $taskSetName = $data[0]['task_set_name'];
 
                 <div>
                     <label>Ваш ответ:</label><br>
-                    <textarea
-                        name="answers[<?= (int)$task['task_id'] ?>]"
-                        rows="4"
-                    ></textarea>
+                    <?php if (in_array((int)$task['task_type_id'], [2, 3], true) && empty($task['options'])): ?>
+                        <div class="meta">
+                            Для этого задания варианты ответа ещё не заданы. Введите ответ текстом.
+                        </div>
+                        <textarea
+                            name="answers[<?= (int)$task['task_id'] ?>]"
+                            rows="4"
+                        ></textarea>
+                    <?php elseif ((int)$task['task_type_id'] === 2): ?>
+                        <input
+                            type="hidden"
+                            name="answers[<?= (int)$task['task_id'] ?>]"
+                            value=""
+                        >
+                        <?php foreach ($task['options'] as $option): ?>
+                            <label class="answer-option">
+                                <input
+                                    type="radio"
+                                    name="answers[<?= (int)$task['task_id'] ?>]"
+                                    value="<?= (int)$option['id'] ?>"
+                                >
+                                <?= htmlspecialchars($option['option_text']) ?>
+                            </label>
+                        <?php endforeach; ?>
+                    <?php elseif ((int)$task['task_type_id'] === 3): ?>
+                        <input
+                            type="hidden"
+                            name="answers[<?= (int)$task['task_id'] ?>][]"
+                            value=""
+                        >
+                        <?php foreach ($task['options'] as $option): ?>
+                            <label class="answer-option">
+                                <input
+                                    type="checkbox"
+                                    name="answers[<?= (int)$task['task_id'] ?>][]"
+                                    value="<?= (int)$option['id'] ?>"
+                                >
+                                <?= htmlspecialchars($option['option_text']) ?>
+                            </label>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <textarea
+                            name="answers[<?= (int)$task['task_id'] ?>]"
+                            rows="4"
+                        ></textarea>
+                    <?php endif; ?>
                 </div>
             </div>
         <?php endforeach; ?>

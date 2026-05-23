@@ -80,6 +80,15 @@ $formData = $controller->showCreateForm();
             background-color: #f3f3f3;
         }
 
+        tbody tr {
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        tbody tr:hover {
+            background-color: #f7fbff;
+            box-shadow: inset 3px 0 0 #0d6efd;
+        }
+
         .empty {
             padding: 20px;
             background: #f8f8f8;

@@ -6,6 +6,9 @@ require_once __DIR__ . '/../models/Task.php';
 class TaskController
 {
     private Task $taskModel;
+    private const TASK_TYPE_OPEN = 1;
+    private const TASK_TYPE_SINGLE = 2;
+    private const TASK_TYPE_MULTIPLE = 3;
 
     public function __construct()
     {
@@ -68,7 +71,13 @@ class TaskController
             return 'Поле "Назначение" не должно превышать 255 символов.';
         }
 
-        $success = $this->taskModel->create([
+        $optionsResult = $this->prepareOptions((int)$taskTypeId, $postData);
+
+        if ($optionsResult['error'] !== '') {
+            return $optionsResult['error'];
+        }
+
+        $taskId = $this->taskModel->create([
             'title' => $title,
             'task_text' => $taskText,
             'difficulty' => $difficulty,
@@ -80,7 +89,15 @@ class TaskController
             'author_id' => 1,
         ]);
 
-        return $success ? 'Задание успешно сохранено.' : 'Ошибка при сохранении задания.';
+        if ($taskId === false) {
+            return 'Ошибка при сохранении задания.';
+        }
+
+        if (!$this->taskModel->replaceOptions($taskId, $optionsResult['options'])) {
+            return 'Задание сохранено, но не удалось сохранить варианты ответа.';
+        }
+
+        return 'Задание успешно сохранено.';
     }
 
     public function index(): array
@@ -92,6 +109,7 @@ class TaskController
     {
         return [
             'task' => $this->taskModel->getById($id),
+            'options' => $this->taskModel->getOptionsByTaskId($id),
             'disciplines' => $this->taskModel->getDisciplines(),
             'taskTypes' => $this->taskModel->getTaskTypes(),
             'folders' => $this->taskModel->getFolders(),
@@ -117,6 +135,12 @@ class TaskController
             return 'Заполнены не все обязательные поля.';
         }
 
+        $optionsResult = $this->prepareOptions((int)$taskTypeId, $postData);
+
+        if ($optionsResult['error'] !== '') {
+            return $optionsResult['error'];
+        }
+
         $success = $this->taskModel->update($id, [
             'title' => $title,
             'task_text' => $taskText,
@@ -128,7 +152,13 @@ class TaskController
             'folder_id' => $folderId,
         ]);
 
-        return $success ? 'Задание успешно обновлено.' : 'Изменения не сохранены.';
+        if (!$success) {
+            return 'Изменения не сохранены.';
+        }
+
+        $this->taskModel->replaceOptions($id, $optionsResult['options']);
+
+        return 'Задание успешно обновлено.';
     }
 
     public function delete(int $id): string
@@ -156,7 +186,15 @@ class TaskController
             return false;
         }
 
-        return $this->taskModel->getByIdForView($id);
+        $task = $this->taskModel->getByIdForView($id);
+
+        if (!$task) {
+            return false;
+        }
+
+        $task['options'] = $this->taskModel->getOptionsByTaskId($id);
+
+        return $task;
     }
 
     public function getTaskDataForCopy(int $id): array|false
@@ -165,7 +203,15 @@ class TaskController
             return false;
         }
 
-        return $this->taskModel->getById($id);
+        $task = $this->taskModel->getById($id);
+
+        if (!$task) {
+            return false;
+        }
+
+        $task['options'] = $this->taskModel->getOptionsByTaskId($id);
+
+        return $task;
     }
 
     public function indexWithFilters(array $queryParams): array
@@ -219,5 +265,98 @@ class TaskController
         }
 
         return 'Не выбрано корректное массовое действие.';
+    }
+
+    private function prepareOptions(int $taskTypeId, array $postData): array
+    {
+        if ($taskTypeId === self::TASK_TYPE_OPEN) {
+            return [
+                'options' => [],
+                'error' => '',
+            ];
+        }
+
+        if (!in_array($taskTypeId, [self::TASK_TYPE_SINGLE, self::TASK_TYPE_MULTIPLE], true)) {
+            return [
+                'options' => [],
+                'error' => '',
+            ];
+        }
+
+        $optionTexts = $postData['option_texts'] ?? [];
+
+        if (!is_array($optionTexts)) {
+            $optionTexts = [];
+        }
+
+        $correctIndexes = [];
+
+        if ($taskTypeId === self::TASK_TYPE_SINGLE) {
+            $singleIndex = $postData['correct_option_single'] ?? '';
+
+            if ($singleIndex !== '') {
+                $correctIndexes[] = (string)$singleIndex;
+            }
+        }
+
+        if ($taskTypeId === self::TASK_TYPE_MULTIPLE) {
+            $multipleIndexes = $postData['correct_options'] ?? [];
+            $correctIndexes = is_array($multipleIndexes) ? array_map('strval', $multipleIndexes) : [];
+        }
+
+        $options = [];
+        $hasCorrect = false;
+
+        foreach ($optionTexts as $index => $text) {
+            $text = trim((string)$text);
+
+            if ($text === '') {
+                continue;
+            }
+
+            $isCorrect = in_array((string)$index, $correctIndexes, true);
+            $hasCorrect = $hasCorrect || $isCorrect;
+
+            $options[] = [
+                'option_text' => $text,
+                'is_correct' => $isCorrect,
+            ];
+        }
+
+        if (count($options) < 2) {
+            return [
+                'options' => [],
+                'error' => 'Укажите минимум два варианта ответа.',
+            ];
+        }
+
+        if (!$hasCorrect) {
+            return [
+                'options' => [],
+                'error' => 'Отметьте правильный вариант ответа.',
+            ];
+        }
+
+        if ($taskTypeId === self::TASK_TYPE_SINGLE) {
+            $correctCount = 0;
+
+            foreach ($options as $option) {
+                if ($option['is_correct']) {
+                    $correctCount++;
+                }
+            }
+
+            if ($correctCount !== 1) {
+                return [
+                    'options' => [],
+                    'error' => 'Для типа "Один вариант" должен быть выбран ровно один правильный вариант.',
+                ];
+            }
+        }
+
+        return [
+            'options' => $options,
+            'error' => '',
+        ];
     }
 }

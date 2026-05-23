@@ -18,7 +18,38 @@ $old = [
     'task_type_id' => '',
     'discipline_id' => '',
     'folder_id' => '',
+    'options' => [
+        ['option_text' => '', 'is_correct' => false],
+        ['option_text' => '', 'is_correct' => false],
+    ],
 ];
+
+function buildOldOptionsFromPost(array $postData): array
+{
+    $optionTexts = $postData['option_texts'] ?? [];
+    $correctSingle = $postData['correct_option_single'] ?? '';
+    $correctMultiple = $postData['correct_options'] ?? [];
+    $correctMultiple = is_array($correctMultiple) ? array_map('strval', $correctMultiple) : [];
+
+    if (!is_array($optionTexts)) {
+        $optionTexts = [];
+    }
+
+    $options = [];
+
+    foreach ($optionTexts as $index => $text) {
+        $options[] = [
+            'option_text' => (string)$text,
+            'is_correct' => (string)$correctSingle === (string)$index || in_array((string)$index, $correctMultiple, true),
+        ];
+    }
+
+    while (count($options) < 2) {
+        $options[] = ['option_text' => '', 'is_correct' => false];
+    }
+
+    return $options;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $formAction = $_POST['form_action'] ?? '';
@@ -43,6 +74,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'task_type_id' => $sourceTask['task_type_id'] ?? '',
                 'discipline_id' => $sourceTask['discipline_id'] ?? '',
                 'folder_id' => $sourceTask['folder_id'] ?? '',
+                'options' => !empty($sourceTask['options'])
+                    ? $sourceTask['options']
+                    : [
+                        ['option_text' => '', 'is_correct' => false],
+                        ['option_text' => '', 'is_correct' => false],
+                    ],
             ];
 
             $message = 'Данные выбранного задания подставлены в форму. При необходимости измените их и сохраните новое задание.';
@@ -61,6 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'task_type_id' => $_POST['task_type_id'] ?? '',
             'discipline_id' => $_POST['discipline_id'] ?? '',
             'folder_id' => $_POST['folder_id'] ?? '',
+            'options' => buildOldOptionsFromPost($_POST),
         ];
 
         $showCopySection = isset($_POST['show_copy_section_state']) && $_POST['show_copy_section_state'] === '1';
@@ -79,6 +117,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'task_type_id' => '',
                 'discipline_id' => '',
                 'folder_id' => '',
+                'options' => [
+                    ['option_text' => '', 'is_correct' => false],
+                    ['option_text' => '', 'is_correct' => false],
+                ],
             ];
 
             $showCopySection = false;
@@ -165,6 +207,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             padding: 8px;
             margin-top: 5px;
             box-sizing: border-box;
+        }
+
+        .option-row {
+            display: grid;
+            grid-template-columns: 1fr 170px;
+            gap: 12px;
+            align-items: center;
+            margin-top: 12px;
+        }
+
+        .option-correct {
+            font-weight: normal;
+            margin-top: 0;
+        }
+
+        .option-correct input {
+            width: auto;
+            margin-right: 6px;
         }
 
         button {
@@ -258,9 +318,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <label for="task_type_id">Тип задания *</label>
             <select name="task_type_id" id="task_type_id" required>
                 <option value="">Выберите тип задания</option>
-                <?php foreach ($formData['taskTypes'] as $type): ?>
+            <?php foreach ($formData['taskTypes'] as $type): ?>
                     <option
                         value="<?= $type['id'] ?>"
+                        data-type-name="<?= htmlspecialchars(mb_strtolower($type['name'])) ?>"
                         <?= (string)$old['task_type_id'] === (string)$type['id'] ? 'selected' : '' ?>
                     >
                         <?= htmlspecialchars($type['name']) ?>
@@ -327,11 +388,108 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <small class="field-hint">Это поле используется преподавателем как ориентир при проверке ответа.</small>
         </div>
 
+        <div class="form-section" id="optionsSection" style="display: none;">
+            <h2>Варианты ответа</h2>
+            <small class="field-hint">
+                Для типа "Один вариант" отметьте один правильный ответ. Для типа "Несколько вариантов" можно отметить несколько.
+            </small>
+
+            <div id="optionsContainer" data-next-index="<?= count($old['options']) ?>">
+                <?php foreach ($old['options'] as $index => $option): ?>
+                    <div class="option-row">
+                        <input
+                            type="text"
+                            name="option_texts[<?= (int)$index ?>]"
+                            value="<?= htmlspecialchars($option['option_text'] ?? '') ?>"
+                            placeholder="Текст варианта ответа"
+                        >
+
+                        <label class="option-correct">
+                            <input
+                                type="radio"
+                                name="correct_option_single"
+                                value="<?= (int)$index ?>"
+                                class="correct-single"
+                                <?= !empty($option['is_correct']) ? 'checked' : '' ?>
+                            >
+                            <input
+                                type="checkbox"
+                                name="correct_options[]"
+                                value="<?= (int)$index ?>"
+                                class="correct-multiple"
+                                <?= !empty($option['is_correct']) ? 'checked' : '' ?>
+                            >
+                            Правильный
+                        </label>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+
+            <button type="button" id="addOptionButton">Добавить ещё вариант</button>
+        </div>
+
         <div class="form-actions">
             <button type="submit">Сохранить задание</button>
             <a href="tasks_list.php" style="margin-left: 15px;">Отмена</a>
         </div>
     </form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const typeSelect = document.getElementById('task_type_id');
+    const optionsSection = document.getElementById('optionsSection');
+    const optionsContainer = document.getElementById('optionsContainer');
+    const addOptionButton = document.getElementById('addOptionButton');
+
+    function getSelectedTypeName() {
+        const selectedOption = typeSelect.options[typeSelect.selectedIndex];
+        return selectedOption ? selectedOption.dataset.typeName || '' : '';
+    }
+
+    function updateOptionsMode() {
+        const typeName = getSelectedTypeName();
+        const isSingle = typeName.includes('один вариант');
+        const isMultiple = typeName.includes('несколько вариантов');
+
+        optionsSection.style.display = isSingle || isMultiple ? 'block' : 'none';
+
+        optionsContainer.querySelectorAll('.correct-single').forEach(function (input) {
+            input.style.display = isSingle ? 'inline-block' : 'none';
+            input.disabled = !isSingle;
+        });
+
+        optionsContainer.querySelectorAll('.correct-multiple').forEach(function (input) {
+            input.style.display = isMultiple ? 'inline-block' : 'none';
+            input.disabled = !isMultiple;
+        });
+    }
+
+    function addOptionRow() {
+        const index = parseInt(optionsContainer.dataset.nextIndex, 10);
+        optionsContainer.dataset.nextIndex = String(index + 1);
+
+        const row = document.createElement('div');
+        row.className = 'option-row';
+        row.innerHTML = `
+            <input type="text" name="option_texts[${index}]" placeholder="Текст варианта ответа">
+            <label class="option-correct">
+                <input type="radio" name="correct_option_single" value="${index}" class="correct-single">
+                <input type="checkbox" name="correct_options[]" value="${index}" class="correct-multiple">
+                Правильный
+            </label>
+        `;
+
+        optionsContainer.appendChild(row);
+        updateOptionsMode();
+    }
+
+    if (typeSelect && optionsSection && optionsContainer && addOptionButton) {
+        typeSelect.addEventListener('change', updateOptionsMode);
+        addOptionButton.addEventListener('click', addOptionRow);
+        updateOptionsMode();
+    }
+});
+</script>
 
 </body>
 </html>
